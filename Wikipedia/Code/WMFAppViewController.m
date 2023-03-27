@@ -1192,6 +1192,14 @@ NSString *const WMFLanguageVariantAlertsLibraryVersion = @"WMFLanguageVariantAle
                 [[self placesViewController] updateViewModeToMap];
                 [[self placesViewController] showArticleURL:articleURL];
             }
+            if (activity.userInfo[@"latitude"] && activity.userInfo[@"longitude"]) {
+                double latitude = [activity.userInfo[NSUserActivity.wmf_userInfoLatitudeKey] doubleValue];
+                double longitude = [activity.userInfo[NSUserActivity.wmf_userInfoLongitudeKey] doubleValue];
+                [self placesViewController].shouldMonitorLocation = NO;
+                [[self placesViewController] setInitialLocationWithLatitude:latitude longitude:longitude];
+            } else {
+                [self placesViewController].shouldMonitorLocation = YES;
+            }
         } break;
         case WMFUserActivityTypeContent: {
             [self dismissPresentedViewControllers];

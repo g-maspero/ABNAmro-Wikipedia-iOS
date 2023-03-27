@@ -42,9 +42,17 @@ __attribute__((annotate("returns_localized_nsstring"))) static inline NSString *
 }
 
 + (instancetype)wmf_pageActivityWithName:(NSString *)pageName {
+    return [self wmf_pageActivityWithName:pageName withAdditionalData:nil];
+}
+
++ (instancetype)wmf_pageActivityWithName:(NSString *)pageName withAdditionalData:(NSDictionary *)additionalData {
     NSUserActivity *activity = [self wmf_activityWithType:[pageName lowercaseString]];
     activity.title = wmf_localizationNotNeeded(pageName);
-    activity.userInfo = @{@"WMFPage": pageName};
+    NSMutableDictionary *userInfo = [NSMutableDictionary dictionaryWithObject:pageName forKey:@"WMFPage"];
+    if (additionalData) {
+        [userInfo addEntriesFromDictionary:additionalData];
+    }
+    activity.userInfo = userInfo;
 
     NSMutableSet *set = [activity.keywords mutableCopy];
     [set addObjectsFromArray:[pageName componentsSeparatedByString:@" "]];
@@ -62,15 +70,25 @@ __attribute__((annotate("returns_localized_nsstring"))) static inline NSString *
 + (instancetype)wmf_placesActivityWithURL:(NSURL *)activityURL {
     NSURLComponents *components = [NSURLComponents componentsWithURL:activityURL resolvingAgainstBaseURL:NO];
     NSURL *articleURL = nil;
+    NSString *latitude = nil;
+    NSString *longitude = nil;
     for (NSURLQueryItem *item in components.queryItems) {
         if ([item.name isEqualToString:@"WMFArticleURL"]) {
             NSString *articleURLString = item.value;
             articleURL = [NSURL URLWithString:articleURLString];
-            break;
+        } else if ([item.name isEqualToString:@"lat"]) {
+            latitude = item.value;
+        } else if ([item.name isEqualToString:@"lon"]) {
+            longitude = item.value;
         }
     }
-    NSUserActivity *activity = [self wmf_pageActivityWithName:@"Places"];
+    NSString *placesPageName = @"Places";
+    NSUserActivity *activity = (latitude && longitude) ?
+    [self wmf_pageActivityWithName:placesPageName withAdditionalData:@{NSUserActivity.wmf_userInfoLatitudeKey: latitude, NSUserActivity.wmf_userInfoLongitudeKey: longitude}] :
+    [self wmf_pageActivityWithName:placesPageName];
+    
     activity.webpageURL = articleURL;
+
     return activity;
 }
 
@@ -316,6 +334,14 @@ __attribute__((annotate("returns_localized_nsstring"))) static inline NSString *
         components.queryItems = @[item];
     }
     return components.URL;
+}
+
++ (NSString *)wmf_userInfoLatitudeKey {
+    return @"latitude";
+}
+
++ (NSString *)wmf_userInfoLongitudeKey {
+    return @"longitude";
 }
 
 @end

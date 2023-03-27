@@ -76,6 +76,8 @@ class PlacesViewController: ViewController, UISearchBarDelegate, ArticlePopoverV
         return PlaceSearchService(dataStore: self.dataStore)
     }()
     
+    @objc var shouldMonitorLocation = false
+    
     // MARK: - View Lifecycle
     
     required init?(coder aDecoder: NSCoder) {
@@ -246,7 +248,7 @@ class PlacesViewController: ViewController, UISearchBarDelegate, ArticlePopoverV
             return
         }
         
-        locationManager.startMonitoringLocation()
+        startMonitoringLocation()
         mapView.showsUserLocation = true
     }
 
@@ -264,6 +266,20 @@ class PlacesViewController: ViewController, UISearchBarDelegate, ArticlePopoverV
         let didYouMeanButtonTopConstraint = didYouMeanButton.topAnchor.constraint(equalTo: navigationBar.bottomAnchor, constant: 17)
 
         NSLayoutConstraint.activate([recenterOnUserLocationButtonTopConstraint, redoSearchButtonTopConstraint, didYouMeanButtonTopConstraint])
+    }
+    
+    private func startMonitoringLocation() {
+        if shouldMonitorLocation { locationManager.startMonitoringLocation() }
+    }
+    
+    @objc func setInitialLocation(latitude: Double, longitude: Double) {
+        let newCenterLocation = CLLocationCoordinate2D(latitude: latitude,
+                                                       longitude: longitude)
+        let suitableSpanForCities = MKCoordinateSpan(latitudeDelta: 0.1627738,
+                                                     longitudeDelta: 0.147556)
+        
+        mapRegion = MKCoordinateRegion(center: newCenterLocation,
+                                       span: suitableSpanForCities)
     }
     
     func selectVisibleArticle(articleKey: String) -> Bool {
@@ -1208,7 +1224,7 @@ class PlacesViewController: ViewController, UISearchBarDelegate, ArticlePopoverV
                     UIApplication.shared.wmf_openAppSpecificSystemSettings()
                     return
                 }
-                self.locationManager.startMonitoringLocation()
+                self.startMonitoringLocation()
             })
         }
         
@@ -2389,7 +2405,7 @@ extension PlacesViewController: LocationManagerDelegate {
     func locationManager(_ locationManager: LocationManagerProtocol, didUpdateAuthorized authorized: Bool) {
         if authorized {
             panMapToNextLocationUpdate = currentSearch == nil
-            locationManager.startMonitoringLocation()
+            startMonitoringLocation()
         } else {
             panMapToNextLocationUpdate = false
             locationManager.stopMonitoringLocation()
